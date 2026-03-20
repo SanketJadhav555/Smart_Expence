@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Reports')}"></head>
+
+<body>
+    <div class="app-container">
+        <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+
+        <div class="main-content">
+            <div th:replace="~{fragments/layout :: navbar('Monthly Reports', 'Analyze your financial data')}"></div>
+
+            <div class="page-container">
+                <!-- Month Selector -->
+                <div class="report-header animate-in">
+                    <div class="month-selector">
+                        <button class="btn btn-icon btn-outline" onclick="changeMonth(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="current-month" id="currentMonth">Loading...</div>
+                        <button class="btn btn-icon btn-outline" onclick="changeMonth(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary btn-sm" onclick="exportReport()">
+                            <i class="fas fa-file-export"></i> Export Report
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="viewMode='monthly'; loadReport()">
+                            <i class="fas fa-calendar-alt"></i> Monthly
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="viewMode='yearly'; loadYearlyReport()">
+                            <i class="fas fa-calendar"></i> Yearly
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Summary Cards -->
+                <div class="summary-cards" id="reportSummary">
+                    <div class="summary-card income animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
+                            <span class="card-label">Month Income</span>
+                        </div>
+                        <div class="card-value" id="reportIncome">₹0</div>
+                    </div>
+                    <div class="summary-card expense animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
+                            <span class="card-label">Month Expense</span>
+                        </div>
+                        <div class="card-value" id="reportExpense">₹0</div>
+                    </div>
+                    <div class="summary-card savings animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-piggy-bank"></i></div>
+                            <span class="card-label">Net Savings</span>
+                        </div>
+                        <div class="card-value" id="reportSavings">₹0</div>
+                    </div>
+                    <div class="summary-card balance animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-percentage"></i></div>
+                            <span class="card-label">Savings Rate</span>
+                        </div>
+                        <div class="card-value" id="reportSavingsRate">0%</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid-2">
+                    <!-- Category Breakdown Pie -->
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-chart-pie"></i> Category Breakdown
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container" style="height: 320px;">
+                                <canvas id="reportPieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Bar Chart -->
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-chart-bar"></i> Spending by Category
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container" style="height: 320px;">
+                                <canvas id="reportBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Yearly Trend (shown when yearly mode) -->
+                <div class="panel animate-in" id="yearlyPanel" style="display: none;">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-chart-line"></i> Yearly Income vs Expense
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart-container" style="height: 350px;">
+                            <canvas id="yearlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Details Table -->
+                <div class="panel animate-in">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-table"></i> Category Details
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th style="text-align: right;">Amount</th>
+                                    <th style="text-align: right;">Percentage</th>
+                                    <th>Distribution</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryTableBody">
+                                <tr>
+                                    <td colspan="4"
+                                        style="text-align: center; padding: 30px; color: var(--text-muted);">
+                                        Loading...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    <script>
+        let selectedMonth, selectedYear;
+        let viewMode = 'monthly';
+        let pieChart = null, barChart = null, yearlyLineChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            selectedMonth = now.getMonth() + 1;
+            selectedYear = now.getFullYear();
+            loadReport();
+        });
+
+        function changeMonth(delta) {
+            selectedMonth += delta;
+            if (selectedMonth > 12) { selectedMonth = 1; selectedYear++; }
+            if (selectedMonth < 1) { selectedMonth = 12; selectedYear--; }
+
+            if (viewMode === 'yearly') {
+                selectedYear += delta;
+                loadYearlyReport();
+            } else {
+                loadReport();
+            }
+        }
+
+        async function loadReport() {
+            viewMode = 'monthly';
+            document.getElementById('yearlyPanel').style.display = 'none';
+
+            const months = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('currentMonth').textContent = `${months[selectedMonth]} ${selectedYear}`;
+
+            try {
+                const data = await api.getMonthlyReport(selectedMonth, selectedYear);
+
+                // Summary
+                document.getElementById('reportIncome').textContent = formatCurrency(data.totalIncome);
+                document.getElementById('reportExpense').textContent = formatCurrency(data.totalExpense);
+                document.getElementById('reportSavings').textContent = formatCurrency(data.savings);
+                document.getElementById('reportSavingsRate').textContent = data.savingsRate + '%';
+
+                // Charts
+                renderReportPieChart(data.categoryBreakdown);
+                renderReportBarChart(data.categoryBreakdown);
+                renderCategoryTable(data.categoryBreakdown);
+            } catch (err) {
+                showToast('Failed to load report', 'error');
+            }
+        }
+
+        async function loadYearlyReport() {
+            viewMode = 'yearly';
+            document.getElementById('currentMonth').textContent = `Year ${selectedYear}`;
+            document.getElementById('yearlyPanel').style.display = 'block';
+
+            try {
+                const data = await api.getYearlyReport(selectedYear);
+
+                document.getElementById('reportIncome').textContent = formatCurrency(data.totalIncome);
+                document.getElementById('reportExpense').textContent = formatCurrency(data.totalExpense);
+                document.getElementById('reportSavings').textContent = formatCurrency(data.totalSavings);
+
+                const rate = data.totalIncome > 0
+                    ? ((data.totalSavings / data.totalIncome) * 100).toFixed(1)
+                    : 0;
+                document.getElementById('reportSavingsRate').textContent = rate + '%';
+
+                renderYearlyChart(data.monthlyData);
+            } catch (err) {
+                showToast('Failed to load yearly report', 'error');
+            }
+        }
+
+        function renderReportPieChart(categories) {
+            const ctx = document.getElementById('reportPieChart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+
+            if (!categories || categories.length === 0) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '14px Inter';
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                ctx.fillText('No expense data', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories.map(c => c.name),
+                    datasets: [{
+                        data: categories.map(c => c.amount),
+                        backgroundColor: categories.map(c => (c.color || '#6366f1') + 'cc'),
+                        borderColor: categories.map(c => c.color || '#6366f1'),
+                        borderWidth: 2,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#94a3b8',
+                                font: { family: 'Inter', size: 11 },
+                                padding: 12,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: chartDefaultOptions.plugins.tooltip
+                    }
+                }
+            });
+        }
+
+        function renderReportBarChart(categories) {
+            const ctx = document.getElementById('reportBarChart').getContext('2d');
+            if (barChart) barChart.destroy();
+
+            if (!categories || categories.length === 0) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '14px Inter';
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                ctx.fillText('No expense data', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: categories.map(c => c.name),
+                    datasets: [{
+                        label: 'Amount',
+                        data: categories.map(c => c.amount),
+                        backgroundColor: categories.map(c => (c.color || '#6366f1') + '99'),
+                        borderColor: categories.map(c => c.color || '#6366f1'),
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...chartDefaultOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                        ...chartDefaultOptions.plugins,
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            ...chartDefaultOptions.scales.x,
+                            ticks: {
+                                ...chartDefaultOptions.scales.x.ticks,
+                                callback: val => formatCurrency(val)
+                            }
+                        },
+                        y: {
+                            ...chartDefaultOptions.scales.y,
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'Inter', size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderYearlyChart(monthlyData) {
+            const ctx = document.getElementById('yearlyChart').getContext('2d');
+            if (yearlyLineChart) yearlyLineChart.destroy();
+
+            yearlyLineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(m => m.month),
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: monthlyData.map(m => m.income),
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#22c55e',
+                            pointBorderColor: '#22c55e',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Expense',
+                            data: monthlyData.map(m => m.expense),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#ef4444',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Savings',
+                            data: monthlyData.map(m => m.savings),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                            tension: 0.4,
+                            fill: false,
+                            borderDash: [5, 5],
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: '#f59e0b',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: chartDefaultOptions
+            });
+        }
+
+        function renderCategoryTable(categories) {
+            const tbody = document.getElementById('categoryTableBody');
+
+            if (!categories || categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">No expense data for this period</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = categories.map(cat => `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="tx-icon" style="background: ${cat.color || '#6366f1'}20; color: ${cat.color || '#6366f1'}; width: 32px; height: 32px; min-width: 32px; font-size: 13px;">
+                            <i class="${cat.icon || 'fas fa-tag'}"></i>
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">${cat.name}</span>
+                    </div>
+                </td>
+                <td style="text-align: right; font-weight: 700; color: var(--text-primary);">
+                    ${formatCurrency(cat.amount)}
+                </td>
+                <td style="text-align: right; color: var(--text-secondary);">
+                    ${cat.percentage}%
+                </td>
+                <td style="width: 30%;">
+                    <div style="background: var(--bg-input); border-radius: 4px; height: 8px; overflow: hidden;">
+                        <div style="background: ${cat.color || '#6366f1'}; height: 100%; width: ${cat.percentage}%; border-radius: 4px; transition: width 0.5s ease;"></div>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        }
+
+        async function exportReport() {
+            try {
+                const res = await fetch('/api/reports/export');
+                const text = await res.text();
+                showToast(text, 'success');
+            } catch (err) {
+                showToast('Export failed', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

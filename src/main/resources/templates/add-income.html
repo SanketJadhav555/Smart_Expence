@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Add Income')}"></head>
+
+<body>
+    <div class="app-container">
+        <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+
+        <div class="main-content">
+            <div th:replace="~{fragments/layout :: navbar('Add Income', 'Record a new income')}"></div>
+
+            <div class="page-container">
+                <div class="form-container">
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-plus-circle" style="color: var(--accent);"></i>
+                                New Income
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <form id="incomeForm" onsubmit="return submitIncome(event)">
+                                <div class="form-group">
+                                    <label class="form-label" for="title">Income Title *</label>
+                                    <input type="text" class="form-control" id="title"
+                                        placeholder="e.g., Monthly Salary" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="amount">Amount (₹) *</label>
+                                        <input type="number" class="form-control" id="amount" placeholder="0.00"
+                                            step="0.01" min="0.01" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="transactionDate">Date *</label>
+                                        <input type="date" class="form-control" id="transactionDate" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="categoryId">Source *</label>
+                                        <select class="form-control" id="categoryId" required>
+                                            <option value="">Select source...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="paymentMethod">Received Via</label>
+                                        <select class="form-control" id="paymentMethod">
+                                            <option value="">Select method...</option>
+                                            <option value="Net Banking">Net Banking</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" for="notes">Notes</label>
+                                    <textarea class="form-control" id="notes" rows="3"
+                                        placeholder="Add any details about this income..."></textarea>
+                                </div>
+
+                                <div class="btn-group" style="margin-top: 8px;">
+                                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                                        <i class="fas fa-plus"></i> Add Income
+                                    </button>
+                                    <button type="button" class="btn btn-outline btn-lg"
+                                        onclick="document.getElementById('incomeForm').reset()">
+                                        <i class="fas fa-redo"></i> Reset
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+            try {
+                const categories = await api.getCategoriesByType('INCOME');
+                const select = document.getElementById('categoryId');
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.name;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                showToast('Failed to load income sources', 'error');
+            }
+        });
+
+        async function submitIncome(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+            try {
+                const data = {
+                    title: document.getElementById('title').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    type: 'INCOME',
+                    categoryId: parseInt(document.getElementById('categoryId').value),
+                    transactionDate: document.getElementById('transactionDate').value,
+                    paymentMethod: document.getElementById('paymentMethod').value,
+                    notes: document.getElementById('notes').value
+                };
+
+                await api.createTransaction(data);
+                showToast('Income added successfully!', 'success');
+                setTimeout(() => window.location.href = '/dashboard', 1000);
+            } catch (err) {
+                showToast(err.message || 'Failed to add income', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus"></i> Add Income';
+            }
+            return false;
+        }
+    </script>
+</body>
+
+</html>

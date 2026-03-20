@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- ===== HEAD FRAGMENT ===== -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Personal Expense Tracker - Track your income, expenses, and financial health">
+    <title th:text="${title} + ' | Smart Expense Tracker'">Smart Expense Tracker</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<!-- ===== SIDEBAR FRAGMENT ===== -->
+<nav th:fragment="sidebar" class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">ExpenseTracker</span>
+                <span class="brand-subtitle">Smart Finance</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar-nav">
+        <div class="nav-section-title">Main</div>
+        <a href="/dashboard" class="nav-item" id="nav-dashboard">
+            <i class="fas fa-th-large"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/transactions" class="nav-item" id="nav-transactions">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Transactions</span>
+        </a>
+
+        <div class="nav-section-title">Actions</div>
+        <a href="/add-expense" class="nav-item" id="nav-add-expense">
+            <i class="fas fa-minus-circle"></i>
+            <span>Add Expense</span>
+        </a>
+        <a href="/add-income" class="nav-item" id="nav-add-income">
+            <i class="fas fa-plus-circle"></i>
+            <span>Add Income</span>
+        </a>
+
+        <div class="nav-section-title">Management</div>
+        <a href="/categories" class="nav-item" id="nav-categories">
+            <i class="fas fa-tags"></i>
+            <span>Categories</span>
+        </a>
+        <a href="/reports" class="nav-item" id="nav-reports">
+            <i class="fas fa-chart-pie"></i>
+            <span>Reports</span>
+        </a>
+    </div>
+
+    <div style="padding: 16px 20px; border-top: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="user-avatar">SG</div>
+            <div>
+                <div style="font-size: 14px; font-weight: 600;">User</div>
+                <div style="font-size: 11px; color: var(--text-muted);">Personal Account</div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ===== NAVBAR FRAGMENT ===== -->
+<div th:fragment="navbar(pageTitle, pageSubtitle)" class="top-navbar">
+    <div class="navbar-left">
+        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open'); document.querySelector('.sidebar-overlay').classList.toggle('active')">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div>
+            <div class="page-title" th:text="${pageTitle}">Dashboard</div>
+            <div class="page-subtitle" th:text="${pageSubtitle}">Overview of your finances</div>
+        </div>
+    </div>
+    <div class="navbar-right">
+        <div class="navbar-search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search transactions..." id="globalSearch">
+        </div>
+        <button class="theme-toggle" title="Toggle theme" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+        <div class="user-avatar">SG</div>
+    </div>
+</div>
+
+<!-- ===== SCRIPTS FRAGMENT ===== -->
+<div th:fragment="scripts">
+    <script th:src="@{/js/api.js}"></script>
+    <script th:src="@{/js/common.js}"></script>
+    <div class="sidebar-overlay"></div>
+</div>
+
+</html>

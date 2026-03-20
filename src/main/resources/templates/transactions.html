@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Transactions')}"></head>
+
+<body>
+    <div class="app-container">
+        <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+
+        <div class="main-content">
+            <div th:replace="~{fragments/layout :: navbar('Transactions', 'View and manage all transactions')}"></div>
+
+            <div class="page-container">
+                <!-- Filters -->
+                <div class="panel animate-in">
+                    <div class="panel-body" style="padding: 16px 24px;">
+                        <div class="filters-bar">
+                            <input type="text" class="form-control" id="filterSearch" placeholder="Search by title..."
+                                style="min-width: 200px;">
+                            <select class="form-control" id="filterType">
+                                <option value="">All Types</option>
+                                <option value="INCOME">Income</option>
+                                <option value="EXPENSE">Expense</option>
+                            </select>
+                            <select class="form-control" id="filterCategory">
+                                <option value="">All Categories</option>
+                            </select>
+                            <input type="date" class="form-control" id="filterStartDate" style="min-width: 140px;">
+                            <input type="date" class="form-control" id="filterEndDate" style="min-width: 140px;">
+                            <button class="btn btn-primary btn-sm" onclick="applyFilters()">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Table -->
+                <div class="panel animate-in">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-list"></i>
+                            Transaction History
+                            <span id="totalCount"
+                                style="font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 8px;"></span>
+                        </div>
+                        <div class="btn-group">
+                            <a href="/add-expense" class="btn btn-danger btn-sm">
+                                <i class="fas fa-minus"></i> Expense
+                            </a>
+                            <a href="/add-income" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus"></i> Income
+                            </a>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction</th>
+                                    <th>Category</th>
+                                    <th>Date</th>
+                                    <th>Payment</th>
+                                    <th>Type</th>
+                                    <th style="text-align: right;">Amount</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsBody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px;">
+                                        <span class="loading-spinner"></span>
+                                        <div style="margin-top: 12px; color: var(--text-muted);">Loading transactions...
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagination" class="pagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit" style="color: var(--primary);"></i> Edit Transaction</h3>
+                <button class="modal-close" onclick="closeModal('editModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editId">
+                    <div class="form-group">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editTitle" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="editAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="editDate" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Type</label>
+                            <select class="form-control" id="editType" onchange="loadEditCategories()">
+                                <option value="EXPENSE">Expense</option>
+                                <option value="INCOME">Income</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select class="form-control" id="editCategory"></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-control" id="editPayment">
+                            <option value="">Select...</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="Debit Card">Debit Card</option>
+                            <option value="Net Banking">Net Banking</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="editNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEdit()">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash" style="color: var(--danger);"></i> Confirm Delete</h3>
+                <button class="modal-close" onclick="closeModal('deleteModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 32px 24px;">
+                <i class="fas fa-exclamation-triangle"
+                    style="font-size: 48px; color: var(--warning); margin-bottom: 16px;"></i>
+                <h3 style="margin-bottom: 8px;">Are you sure?</h3>
+                <p style="color: var(--text-muted);">This action cannot be undone. This transaction will be permanently
+                    deleted.</p>
+                <input type="hidden" id="deleteId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    <script>
+        let currentPage = 0;
+        let allCategories = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load categories for filter
+            try {
+                allCategories = await api.getCategories();
+                const select = document.getElementById('filterCategory');
+                allCategories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = `${cat.name} (${cat.type})`;
+                    select.appendChild(opt);
+                });
+            } catch (e) { }
+
+            loadTransactions(0);
+        });
+
+        async function loadTransactions(page) {
+            currentPage = page;
+            const type = document.getElementById('filterType').value;
+            const categoryId = document.getElementById('filterCategory').value;
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            const search = document.getElementById('filterSearch').value;
+
+            try {
+                const data = await api.searchTransactions({
+                    type: type || null,
+                    categoryId: categoryId || null,
+                    startDate: startDate || null,
+                    endDate: endDate || null,
+                    search: search || null,
+                    page: page,
+                    size: 15
+                });
+
+                renderTable(data.content);
+                document.getElementById('totalCount').textContent = `(${data.totalElements} total)`;
+                renderPagination('pagination', data.number, data.totalPages, 'loadTransactions');
+            } catch (err) {
+                showToast('Failed to load transactions', 'error');
+            }
+        }
+
+        function renderTable(transactions) {
+            const tbody = document.getElementById('transactionsBody');
+
+            if (!transactions || transactions.length === 0) {
+                tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <h3>No transactions found</h3>
+                            <p>Try adjusting your filters or add a new transaction</p>
+                        </div>
+                    </td>
+                </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = transactions.map(tx => `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="tx-icon" style="background: ${tx.categoryColor || '#6366f1'}20; color: ${tx.categoryColor || '#6366f1'}; width: 36px; height: 36px; min-width: 36px; font-size: 14px;">
+                            <i class="${tx.categoryIcon || 'fas fa-tag'}"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${tx.title}</div>
+                            ${tx.notes ? `<div style="font-size: 11px; color: var(--text-muted);">${tx.notes.substring(0, 50)}</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="category-tag">
+                        <span class="category-dot" style="background: ${tx.categoryColor || '#6366f1'};"></span>
+                        ${tx.categoryName || 'Uncategorized'}
+                    </span>
+                </td>
+                <td>${formatDate(tx.transactionDate)}</td>
+                <td>${tx.paymentMethod || '-'}</td>
+                <td><span class="badge ${tx.type === 'INCOME' ? 'badge-income' : 'badge-expense'}">${tx.type}</span></td>
+                <td style="text-align: right;">
+                    <span class="tx-amount ${tx.type === 'INCOME' ? 'income' : 'expense'}" style="font-size: 14px;">
+                        ${tx.type === 'INCOME' ? '+' : '-'}${formatCurrency(tx.amount)}
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    <div class="btn-group" style="justify-content: center;">
+                        <button class="btn btn-icon btn-outline btn-sm" onclick="editTransaction(${tx.id})" title="Edit">
+                            <i class="fas fa-pen" style="font-size: 12px;"></i>
+                        </button>
+                        <button class="btn btn-icon btn-outline btn-sm" onclick="deleteTransaction(${tx.id})" title="Delete" style="color: var(--danger);">
+                            <i class="fas fa-trash" style="font-size: 12px;"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        }
+
+        function applyFilters() {
+            loadTransactions(0);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            loadTransactions(0);
+        }
+
+        async function editTransaction(id) {
+            try {
+                const tx = await api.getTransaction(id);
+                document.getElementById('editId').value = tx.id;
+                document.getElementById('editTitle').value = tx.title;
+                document.getElementById('editAmount').value = tx.amount;
+                document.getElementById('editDate').value = tx.transactionDate;
+                document.getElementById('editType').value = tx.type;
+                document.getElementById('editPayment').value = tx.paymentMethod || '';
+                document.getElementById('editNotes').value = tx.notes || '';
+
+                await loadEditCategories(tx.categoryId);
+                openModal('editModal');
+            } catch (err) {
+                showToast('Failed to load transaction', 'error');
+            }
+        }
+
+        async function loadEditCategories(selectedId) {
+            const type = document.getElementById('editType').value;
+            const select = document.getElementById('editCategory');
+            select.innerHTML = '<option value="">Select...</option>';
+
+            const cats = allCategories.filter(c => c.type === type);
+            cats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                if (selectedId && cat.id == selectedId) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById('editId').value;
+            try {
+                await api.updateTransaction(id, {
+                    title: document.getElementById('editTitle').value,
+                    amount: parseFloat(document.getElementById('editAmount').value),
+                    type: document.getElementById('editType').value,
+                    categoryId: parseInt(document.getElementById('editCategory').value) || null,
+                    transactionDate: document.getElementById('editDate').value,
+                    paymentMethod: document.getElementById('editPayment').value,
+                    notes: document.getElementById('editNotes').value
+                });
+                closeModal('editModal');
+                showToast('Transaction updated!', 'success');
+                loadTransactions(currentPage);
+            } catch (err) {
+                showToast(err.message || 'Failed to update', 'error');
+            }
+        }
+
+        function deleteTransaction(id) {
+            document.getElementById('deleteId').value = id;
+            openModal('deleteModal');
+        }
+
+        async function confirmDelete() {
+            const id = document.getElementById('deleteId').value;
+            try {
+                await api.deleteTransaction(id);
+                closeModal('deleteModal');
+                showToast('Transaction deleted!', 'success');
+                loadTransactions(currentPage);
+            } catch (err) {
+                showToast('Failed to delete', 'error');
+            }
+        }
+
+        // Enter key search
+        document.getElementById('filterSearch')?.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') applyFilters();
+        });
+    </script>
+</body>
+
+</html>

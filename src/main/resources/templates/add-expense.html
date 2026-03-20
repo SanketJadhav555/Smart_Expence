@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Add Expense')}"></head>
+
+<body>
+    <div class="app-container">
+        <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+
+        <div class="main-content">
+            <div th:replace="~{fragments/layout :: navbar('Add Expense', 'Record a new expense')}"></div>
+
+            <div class="page-container">
+                <div class="form-container">
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-minus-circle" style="color: var(--danger);"></i>
+                                New Expense
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <form id="expenseForm" onsubmit="return submitExpense(event)">
+                                <div class="form-group">
+                                    <label class="form-label" for="title">Expense Title *</label>
+                                    <input type="text" class="form-control" id="title"
+                                        placeholder="e.g., Grocery Shopping" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="amount">Amount (₹) *</label>
+                                        <input type="number" class="form-control" id="amount" placeholder="0.00"
+                                            step="0.01" min="0.01" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="transactionDate">Date *</label>
+                                        <input type="date" class="form-control" id="transactionDate" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="categoryId">Category *</label>
+                                        <select class="form-control" id="categoryId" required>
+                                            <option value="">Select category...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="paymentMethod">Payment Method</label>
+                                        <select class="form-control" id="paymentMethod">
+                                            <option value="">Select method...</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="UPI">UPI</option>
+                                            <option value="Credit Card">Credit Card</option>
+                                            <option value="Debit Card">Debit Card</option>
+                                            <option value="Net Banking">Net Banking</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label" for="notes">Notes</label>
+                                    <textarea class="form-control" id="notes" rows="3"
+                                        placeholder="Add any additional details..."></textarea>
+                                </div>
+
+                                <div class="btn-group" style="margin-top: 8px;">
+                                    <button type="submit" class="btn btn-danger btn-lg" id="submitBtn">
+                                        <i class="fas fa-plus"></i> Add Expense
+                                    </button>
+                                    <button type="button" class="btn btn-outline btn-lg"
+                                        onclick="document.getElementById('expenseForm').reset()">
+                                        <i class="fas fa-redo"></i> Reset
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set today's date
+            document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+            // Load expense categories
+            try {
+                const categories = await api.getCategoriesByType('EXPENSE');
+                const select = document.getElementById('categoryId');
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.name;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                showToast('Failed to load categories', 'error');
+            }
+        });
+
+        async function submitExpense(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+            try {
+                const data = {
+                    title: document.getElementById('title').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    type: 'EXPENSE',
+                    categoryId: parseInt(document.getElementById('categoryId').value),
+                    transactionDate: document.getElementById('transactionDate').value,
+                    paymentMethod: document.getElementById('paymentMethod').value,
+                    notes: document.getElementById('notes').value
+                };
+
+                await api.createTransaction(data);
+                showToast('Expense added successfully!', 'success');
+                setTimeout(() => window.location.href = '/dashboard', 1000);
+            } catch (err) {
+                showToast(err.message || 'Failed to add expense', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus"></i> Add Expense';
+            }
+            return false;
+        }
+    </script>
+</body>
+
+</html>

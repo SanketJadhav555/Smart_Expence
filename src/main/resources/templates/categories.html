@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Categories')}"></head>
+
+<body>
+    <div class="app-container">
+        <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+
+        <div class="main-content">
+            <div th:replace="~{fragments/layout :: navbar('Categories', 'Manage your expense and income categories')}">
+            </div>
+
+            <div class="page-container">
+                <!-- Add Category -->
+                <div class="panel animate-in">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-plus-circle"></i> Add New Category
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <form id="categoryForm" onsubmit="return addCategory(event)"
+                            style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+                            <div class="form-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" id="catName" placeholder="Category name"
+                                    required>
+                            </div>
+                            <div class="form-group" style="min-width: 150px; margin-bottom: 0;">
+                                <label class="form-label">Type</label>
+                                <select class="form-control" id="catType" required>
+                                    <option value="EXPENSE">Expense</option>
+                                    <option value="INCOME">Income</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="min-width: 120px; margin-bottom: 0;">
+                                <label class="form-label">Icon Class</label>
+                                <input type="text" class="form-control" id="catIcon" placeholder="fas fa-tag"
+                                    value="fas fa-tag">
+                            </div>
+                            <div class="form-group" style="min-width: 100px; margin-bottom: 0;">
+                                <label class="form-label">Color</label>
+                                <input type="color" class="form-control" id="catColor" value="#6366f1"
+                                    style="padding: 4px; height: 45px;">
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="height: 45px;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Expense Categories -->
+                <div class="panel animate-in">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-minus-circle" style="color: var(--danger);"></i>
+                            Expense Categories
+                        </div>
+                        <span id="expenseCount" style="font-size: 13px; color: var(--text-muted);"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="category-grid" id="expenseCategories">
+                            <div class="skeleton" style="height: 88px;"></div>
+                            <div class="skeleton" style="height: 88px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Income Categories -->
+                <div class="panel animate-in">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-plus-circle" style="color: var(--accent);"></i>
+                            Income Categories
+                        </div>
+                        <span id="incomeCount" style="font-size: 13px; color: var(--text-muted);"></span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="category-grid" id="incomeCategories">
+                            <div class="skeleton" style="height: 88px;"></div>
+                            <div class="skeleton" style="height: 88px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div class="modal-overlay" id="editCategoryModal">
+        <div class="modal" style="max-width: 460px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit" style="color: var(--primary);"></i> Edit Category</h3>
+                <button class="modal-close" onclick="closeModal('editCategoryModal')"><i
+                        class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editCatId">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" id="editCatName" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Type</label>
+                        <select class="form-control" id="editCatType">
+                            <option value="EXPENSE">Expense</option>
+                            <option value="INCOME">Income</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Icon</label>
+                        <input type="text" class="form-control" id="editCatIcon">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Color</label>
+                    <input type="color" class="form-control" id="editCatColor" style="padding: 4px; height: 45px;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('editCategoryModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCategory()"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadCategories);
+
+        async function loadCategories() {
+            try {
+                const categories = await api.getCategories();
+                const expense = categories.filter(c => c.type === 'EXPENSE');
+                const income = categories.filter(c => c.type === 'INCOME');
+
+                renderCategories('expenseCategories', expense);
+                renderCategories('incomeCategories', income);
+                document.getElementById('expenseCount').textContent = `${expense.length} categories`;
+                document.getElementById('incomeCount').textContent = `${income.length} categories`;
+            } catch (err) {
+                showToast('Failed to load categories', 'error');
+            }
+        }
+
+        function renderCategories(containerId, categories) {
+            const container = document.getElementById(containerId);
+            if (categories.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 30px;"><p>No categories yet</p></div>';
+                return;
+            }
+
+            container.innerHTML = categories.map(cat => `
+            <div class="category-card">
+                <div class="cat-icon" style="background: ${cat.color}20; color: ${cat.color};">
+                    <i class="${cat.icon || 'fas fa-tag'}"></i>
+                </div>
+                <div class="cat-info">
+                    <div class="cat-name">${cat.name}</div>
+                    <div class="cat-type">${cat.type}</div>
+                </div>
+                <div class="cat-actions">
+                    <button class="btn btn-icon btn-outline btn-sm" onclick="editCategory(${cat.id}, '${cat.name}', '${cat.type}', '${cat.icon || 'fas fa-tag'}', '${cat.color}')" title="Edit">
+                        <i class="fas fa-pen" style="font-size: 11px;"></i>
+                    </button>
+                    <button class="btn btn-icon btn-outline btn-sm" onclick="deleteCategory(${cat.id}, '${cat.name}')" title="Delete" style="color: var(--danger);">
+                        <i class="fas fa-trash" style="font-size: 11px;"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        async function addCategory(e) {
+            e.preventDefault();
+            try {
+                await api.createCategory({
+                    name: document.getElementById('catName').value,
+                    type: document.getElementById('catType').value,
+                    icon: document.getElementById('catIcon').value || 'fas fa-tag',
+                    color: document.getElementById('catColor').value
+                });
+                showToast('Category added!', 'success');
+                document.getElementById('categoryForm').reset();
+                document.getElementById('catColor').value = '#6366f1';
+                loadCategories();
+            } catch (err) {
+                showToast(err.message || 'Failed to add category', 'error');
+            }
+            return false;
+        }
+
+        function editCategory(id, name, type, icon, color) {
+            document.getElementById('editCatId').value = id;
+            document.getElementById('editCatName').value = name;
+            document.getElementById('editCatType').value = type;
+            document.getElementById('editCatIcon').value = icon;
+            document.getElementById('editCatColor').value = color;
+            openModal('editCategoryModal');
+        }
+
+        async function saveCategory() {
+            const id = document.getElementById('editCatId').value;
+            try {
+                await api.updateCategory(id, {
+                    name: document.getElementById('editCatName').value,
+                    type: document.getElementById('editCatType').value,
+                    icon: document.getElementById('editCatIcon').value,
+                    color: document.getElementById('editCatColor').value
+                });
+                closeModal('editCategoryModal');
+                showToast('Category updated!', 'success');
+                loadCategories();
+            } catch (err) {
+                showToast(err.message || 'Failed to update', 'error');
+            }
+        }
+
+        async function deleteCategory(id, name) {
+            if (!confirm(`Delete category "${name}"? Transactions using this category will be uncategorized.`)) return;
+            try {
+                await api.deleteCategory(id);
+                showToast('Category deleted!', 'success');
+                loadCategories();
+            } catch (err) {
+                showToast('Failed to delete', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Dashboard')}"></head>
+
+<body>
+    <div class="app-container">
+
+        <!-- Sidebar -->
+        <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar -->
+            <div th:replace="~{fragments/layout :: navbar('Dashboard', 'Overview of your finances')}"></div>
+
+            <!-- Page Content -->
+            <div class="page-container">
+
+                <!-- Summary Cards -->
+                <div class="summary-cards" id="summaryCards">
+                    <div class="summary-card balance animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-wallet"></i></div>
+                            <span class="card-label">Total Balance</span>
+                        </div>
+                        <div class="card-value" id="totalBalance">
+                            <div class="skeleton" style="height: 32px; width: 120px;"></div>
+                        </div>
+                        <span class="card-change positive" id="balanceTrend">
+                            <i class="fas fa-arrow-up"></i> --
+                        </span>
+                    </div>
+
+                    <div class="summary-card income animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-arrow-down"></i></div>
+                            <span class="card-label">Total Income</span>
+                        </div>
+                        <div class="card-value" id="totalIncome">
+                            <div class="skeleton" style="height: 32px; width: 120px;"></div>
+                        </div>
+                        <span class="card-change positive" id="incomeTrend">
+                            <i class="fas fa-arrow-up"></i> This month
+                        </span>
+                    </div>
+
+                    <div class="summary-card expense animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-arrow-up"></i></div>
+                            <span class="card-label">Total Expense</span>
+                        </div>
+                        <div class="card-value" id="totalExpense">
+                            <div class="skeleton" style="height: 32px; width: 120px;"></div>
+                        </div>
+                        <span class="card-change negative" id="expenseTrend">
+                            <i class="fas fa-arrow-up"></i> This month
+                        </span>
+                    </div>
+
+                    <div class="summary-card savings animate-in">
+                        <div class="card-header">
+                            <div class="card-icon"><i class="fas fa-piggy-bank"></i></div>
+                            <span class="card-label">This Month Savings</span>
+                        </div>
+                        <div class="card-value" id="savings">
+                            <div class="skeleton" style="height: 32px; width: 120px;"></div>
+                        </div>
+                        <span class="card-change positive" id="savingsTrend">
+                            <i class="fas fa-arrow-up"></i> --
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid-3">
+                    <!-- Monthly Trend Chart -->
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-chart-bar"></i> Income vs Expense Trend
+                            </div>
+                            <span style="font-size: 12px; color: var(--text-muted);">Last 6 months</span>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Pie Chart -->
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-chart-pie"></i> Expense by Category
+                            </div>
+                            <span style="font-size: 12px; color: var(--text-muted);">This month</span>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions & Insights Row -->
+                <div class="grid-2">
+                    <!-- Recent Transactions -->
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-history"></i> Recent Transactions
+                            </div>
+                            <a href="/transactions" class="btn btn-sm btn-outline">View All</a>
+                        </div>
+                        <div class="panel-body" style="padding: 12px 24px;">
+                            <ul class="transaction-list" id="recentTransactions">
+                                <li class="transaction-item">
+                                    <div class="skeleton" style="width: 42px; height: 42px; border-radius: 12px;"></div>
+                                    <div style="flex:1">
+                                        <div class="skeleton" style="height: 14px; width: 60%; margin-bottom: 6px;">
+                                        </div>
+                                        <div class="skeleton" style="height: 10px; width: 40%;"></div>
+                                    </div>
+                                    <div class="skeleton" style="height: 16px; width: 70px;"></div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Smart Insights -->
+                    <div class="panel animate-in">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-lightbulb"></i> Smart Insights
+                            </div>
+                            <span class="badge badge-income">AI Powered</span>
+                        </div>
+                        <div class="panel-body">
+                            <ul class="insights-list" id="insightsList">
+                                <li class="insight-item skeleton" style="height: 42px; border-left: none;"></li>
+                                <li class="insight-item skeleton"
+                                    style="height: 42px; border-left: none; margin-top: 8px;"></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    <script th:src="@{/js/dashboard.js}"></script>
+</body>
+
+</html>
