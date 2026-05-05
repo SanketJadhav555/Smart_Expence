@@ -85,13 +85,13 @@
             <p class="login-subtitle">Start your journey to financial freedom</p>
         </div>
 
-        <form onsubmit="event.preventDefault(); window.location.href='/login'">
+        <form id="registerForm" onsubmit="handleRegister(event)">
             <div class="form-group">
                 <label class="form-label">Full Name</label>
                 <div style="position: relative;">
                     <i class="fas fa-user"
                         style="position: absolute; left: 16px; top: 16px; color: var(--text-muted);"></i>
-                    <input type="text" class="form-control" style="padding-left: 44px;" placeholder="John Doe" required>
+                    <input type="text" id="regName" class="form-control" style="padding-left: 44px;" placeholder="Sanket Jadhav" required>
                 </div>
             </div>
 
@@ -100,7 +100,7 @@
                 <div style="position: relative;">
                     <i class="fas fa-envelope"
                         style="position: absolute; left: 16px; top: 16px; color: var(--text-muted);"></i>
-                    <input type="email" class="form-control" style="padding-left: 44px;" placeholder="name@example.com" required>
+                    <input type="email" id="regEmail" class="form-control" style="padding-left: 44px;" placeholder="name@example.com" required>
                 </div>
             </div>
 
@@ -138,6 +138,24 @@
             Already have an account? <a th:href="@{/login}">Sign In</a>
         </div>
     </div>
+
+    <script>
+        function handleRegister(e) {
+            e.preventDefault();
+            const name  = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            if (!name || !email) return;
+
+            // Derive initials from name
+            const parts    = name.split(' ').filter(Boolean);
+            const initials = parts.length >= 2
+                ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+                : name.substring(0, 2).toUpperCase();
+
+            localStorage.setItem('et_user', JSON.stringify({ name, email, initials }));
+            window.location.href = '/login';
+        }
+    </script>
 </body>
 
 </html>

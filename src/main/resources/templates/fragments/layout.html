@@ -19,20 +19,99 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 
     <!-- App CSS -->
     <link rel="stylesheet" th:href="@{/css/style.css}">
+
+    <style>
+        /* ---- Profile Dropdown ---- */
+        .profile-wrapper { position: relative; }
+
+        .user-avatar { cursor: pointer; user-select: none; }
+
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 10px);
+            width: 264px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 9999;
+            overflow: hidden;
+            animation: fadeInUp 0.18s ease;
+        }
+        .profile-dropdown.open { display: block; }
+
+        .profile-dropdown-header {
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(79,70,229,0.15), rgba(34,197,94,0.08));
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .profile-dropdown-avatar {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; font-weight: 700; color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(79,70,229,0.35);
+        }
+
+        .profile-dropdown-name  { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+        .profile-dropdown-email { font-size: 11px; color: var(--text-muted); margin-top: 2px; word-break: break-all; }
+
+        .profile-dropdown-body { padding: 8px; }
+
+        .profile-menu-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            font-size: 13px; color: var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+            text-decoration: none;
+        }
+        .profile-menu-item:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .profile-menu-item.logout { color: #ef4444; }
+        .profile-menu-item.logout:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .profile-menu-item i { width: 18px; text-align: center; }
+
+        .profile-divider { height: 1px; background: var(--border-color); margin: 4px 8px; }
+
+        /* Sidebar profile area */
+        .sidebar-user-wrapper { position: relative; }
+
+        .sidebar-profile-dropdown {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 0; right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            z-index: 9999;
+            overflow: hidden;
+            animation: fadeInUp 0.18s ease;
+            margin: 0 8px;
+        }
+        .sidebar-profile-dropdown.open { display: block; }
+    </style>
 </head>
 
 <!-- ===== SIDEBAR FRAGMENT ===== -->
 <nav th:fragment="sidebar" class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="sidebar-brand">
-            <div class="brand-icon">
-                <i class="fas fa-wallet"></i>
-            </div>
+            <div class="brand-icon"><i class="fas fa-wallet"></i></div>
             <div class="brand-text">
                 <span class="brand-name">ExpenseTracker</span>
                 <span class="brand-subtitle">Smart Finance</span>
@@ -42,43 +121,46 @@
 
     <div class="sidebar-nav">
         <div class="nav-section-title">Main</div>
-        <a href="/dashboard" class="nav-item" id="nav-dashboard">
-            <i class="fas fa-th-large"></i>
-            <span>Dashboard</span>
-        </a>
-        <a href="/transactions" class="nav-item" id="nav-transactions">
-            <i class="fas fa-exchange-alt"></i>
-            <span>Transactions</span>
-        </a>
+        <a href="/dashboard"    class="nav-item" id="nav-dashboard">    <i class="fas fa-th-large"></i>      <span>Dashboard</span>    </a>
+        <a href="/transactions" class="nav-item" id="nav-transactions"> <i class="fas fa-exchange-alt"></i>  <span>Transactions</span> </a>
 
         <div class="nav-section-title">Actions</div>
-        <a href="/add-expense" class="nav-item" id="nav-add-expense">
-            <i class="fas fa-minus-circle"></i>
-            <span>Add Expense</span>
-        </a>
-        <a href="/add-income" class="nav-item" id="nav-add-income">
-            <i class="fas fa-plus-circle"></i>
-            <span>Add Income</span>
-        </a>
+        <a href="/add-expense"  class="nav-item" id="nav-add-expense">  <i class="fas fa-minus-circle"></i>  <span>Add Expense</span>  </a>
+        <a href="/add-income"   class="nav-item" id="nav-add-income">   <i class="fas fa-plus-circle"></i>   <span>Add Income</span>   </a>
 
         <div class="nav-section-title">Management</div>
-        <a href="/categories" class="nav-item" id="nav-categories">
-            <i class="fas fa-tags"></i>
-            <span>Categories</span>
-        </a>
-        <a href="/reports" class="nav-item" id="nav-reports">
-            <i class="fas fa-chart-pie"></i>
-            <span>Reports</span>
-        </a>
+        <a href="/categories"   class="nav-item" id="nav-categories">   <i class="fas fa-tags"></i>          <span>Categories</span>   </a>
+        <a href="/reports"      class="nav-item" id="nav-reports">      <i class="fas fa-chart-pie"></i>     <span>Reports</span>      </a>
     </div>
 
-    <div style="padding: 16px 20px; border-top: 1px solid var(--border-color);">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div class="user-avatar">SG</div>
-            <div>
-                <div style="font-size: 14px; font-weight: 600;">User</div>
-                <div style="font-size: 11px; color: var(--text-muted);">Personal Account</div>
+    <!-- Sidebar user panel -->
+    <div style="padding: 16px 20px; border-top: 1px solid var(--border-color);" class="sidebar-user-wrapper">
+
+        <!-- Popup opens upward -->
+        <div class="sidebar-profile-dropdown" id="sidebarProfileDropdown">
+            <div class="profile-dropdown-header">
+                <div class="profile-dropdown-avatar" id="sidebarDropAvatar">?</div>
+                <div>
+                    <div class="profile-dropdown-name"  id="sidebarDropName">Loading...</div>
+                    <div class="profile-dropdown-email" id="sidebarDropEmail">—</div>
+                </div>
             </div>
+            <div class="profile-dropdown-body">
+                <div class="profile-divider"></div>
+                <a class="profile-menu-item logout" onclick="logoutUser()">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </a>
+            </div>
+        </div>
+
+        <!-- Clickable row -->
+        <div style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleSidebarDropdown()">
+            <div class="user-avatar" id="sidebarAvatar">?</div>
+            <div>
+                <div style="font-size:14px;font-weight:600;" id="sidebarUserName">Loading...</div>
+                <div style="font-size:11px;color:var(--text-muted);" id="sidebarUserEmail">Personal Account</div>
+            </div>
+            <i class="fas fa-chevron-up" style="margin-left:auto;font-size:10px;color:var(--text-muted);"></i>
         </div>
     </div>
 </nav>
@@ -86,11 +168,11 @@
 <!-- ===== NAVBAR FRAGMENT ===== -->
 <div th:fragment="navbar(pageTitle, pageSubtitle)" class="top-navbar">
     <div class="navbar-left">
-        <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open'); document.querySelector('.sidebar-overlay').classList.toggle('active')">
+        <button class="menu-toggle">
             <i class="fas fa-bars"></i>
         </button>
         <div>
-            <div class="page-title" th:text="${pageTitle}">Dashboard</div>
+            <div class="page-title"    th:text="${pageTitle}">Dashboard</div>
             <div class="page-subtitle" th:text="${pageSubtitle}">Overview of your finances</div>
         </div>
     </div>
@@ -102,15 +184,146 @@
         <button class="theme-toggle" title="Toggle theme" id="themeToggle">
             <i class="fas fa-moon"></i>
         </button>
-        <div class="user-avatar">SG</div>
+
+        <!-- Navbar avatar + dropdown -->
+        <div class="profile-wrapper" id="navbarProfileWrapper">
+            <div class="user-avatar" id="navbarAvatar" onclick="toggleNavbarDropdown()">?</div>
+            <div class="profile-dropdown" id="navbarProfileDropdown">
+                <div class="profile-dropdown-header">
+                    <div class="profile-dropdown-avatar" id="navbarDropAvatar">?</div>
+                    <div>
+                        <div class="profile-dropdown-name"  id="navbarDropName">Loading...</div>
+                        <div class="profile-dropdown-email" id="navbarDropEmail">—</div>
+                    </div>
+                </div>
+                <div class="profile-dropdown-body">
+                    <div class="profile-divider"></div>
+                    <a class="profile-menu-item logout" onclick="logoutUser()">
+                        <i class="fas fa-sign-out-alt"></i> Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- ===== SCRIPTS FRAGMENT ===== -->
 <div th:fragment="scripts">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script th:src="@{/js/api.js}"></script>
     <script th:src="@{/js/common.js}"></script>
     <div class="sidebar-overlay"></div>
+
+    <script>
+        /* ---- User profile ---- */
+        function loadUserProfile() {
+            var raw  = localStorage.getItem('et_user');
+            var user = raw ? JSON.parse(raw) : {};
+            var initials = user.initials || (user.name ? user.name.substring(0,2).toUpperCase() : 'U');
+            var name     = user.name  || 'User';
+            var email    = user.email || '—';
+
+            // Sidebar row
+            var el;
+            el = document.getElementById('sidebarAvatar');    if (el) el.textContent = initials;
+            el = document.getElementById('sidebarUserName');  if (el) el.textContent = name;
+            el = document.getElementById('sidebarUserEmail'); if (el) el.textContent = email;
+            // Sidebar dropdown header
+            el = document.getElementById('sidebarDropAvatar'); if (el) el.textContent = initials;
+            el = document.getElementById('sidebarDropName');   if (el) el.textContent = name;
+            el = document.getElementById('sidebarDropEmail');  if (el) el.textContent = email;
+            // Navbar avatar
+            el = document.getElementById('navbarAvatar');    if (el) el.textContent = initials;
+            // Navbar dropdown header
+            el = document.getElementById('navbarDropAvatar'); if (el) el.textContent = initials;
+            el = document.getElementById('navbarDropName');   if (el) el.textContent = name;
+            el = document.getElementById('navbarDropEmail');  if (el) el.textContent = email;
+        }
+
+        function toggleNavbarDropdown() {
+            var dd = document.getElementById('navbarProfileDropdown');
+            if (dd) dd.classList.toggle('open');
+            var sd = document.getElementById('sidebarProfileDropdown');
+            if (sd) sd.classList.remove('open');
+        }
+
+        function toggleSidebarDropdown() {
+            var dd = document.getElementById('sidebarProfileDropdown');
+            if (dd) dd.classList.toggle('open');
+            var nd = document.getElementById('navbarProfileDropdown');
+            if (nd) nd.classList.remove('open');
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('et_user');
+            window.location.href = '/login';
+        }
+
+        // Close on outside click
+        document.addEventListener('click', function(e) {
+            var nw  = document.getElementById('navbarProfileWrapper');
+            var sw  = document.querySelector('.sidebar-user-wrapper');
+            var ndd = document.getElementById('navbarProfileDropdown');
+            var sdd = document.getElementById('sidebarProfileDropdown');
+            if (nw  && !nw.contains(e.target)  && ndd) ndd.classList.remove('open');
+            if (sw  && !sw.contains(e.target)  && sdd) sdd.classList.remove('open');
+        });
+
+        document.addEventListener('DOMContentLoaded', loadUserProfile);
+    </script>
 </div>
+
+<!-- ===== FOOTER FRAGMENT ===== -->
+<footer th:fragment="siteFooter" class="site-footer" id="siteFooter">
+    <div class="footer-glow-1"></div>
+    <div class="footer-glow-2"></div>
+    
+    <div class="footer-glass-container">
+        <div class="footer-grid">
+            <!-- Section 1: Branding -->
+            <div class="footer-brand">
+                <h3>Sanket Jadhav</h3>
+                <span class="title">Web Developer</span>
+                <p>Building modern, scalable, and intelligent web experiences.</p>
+            </div>
+            
+            <!-- Section 2: Contact -->
+            <div class="footer-contact">
+                <h4>Contact Info</h4>
+                <a href="tel:+918208306919" class="contact-item">
+                    <i class="fas fa-phone-alt"></i>
+                    <span>+91 8208306919</span>
+                </a>
+                <a href="mailto:sanketjadhav132001@gmail.com" class="contact-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>sanketjadhav132001@gmail.com</span>
+                </a>
+            </div>
+            
+            <!-- Section 3: Social & Links -->
+            <div class="footer-social">
+                <h4>Connect With Me</h4>
+                <div class="social-links">
+                    <a href="https://github.com/SanketJadhav555" class="social-btn" title="GitHub"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/in/sanket-jadhav-b285a8257" class="social-btn" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://sanket-jadhav-portfolio-2024.netlify.app/" class="social-btn" title="Portfolio"><i class="fas fa-globe"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-divider"></div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2026 Sanket Jadhav. All rights reserved.</p>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>SJ <i class="fas fa-heart heart-icon"></i> & <i class="fas fa-code" style="color: #C084FC;"></i></span>
+                <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to Top">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</footer>
 
 </html>

@@ -23,8 +23,11 @@
                         </button>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-primary btn-sm" onclick="exportReport()">
-                            <i class="fas fa-file-export"></i> Export Report
+                        <button class="btn btn-success btn-sm" onclick="exportExcel()" id="btnExcelExport">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="exportPdf()" id="btnPdfExport">
+                            <i class="fas fa-file-pdf"></i> Export PDF
                         </button>
                         <button class="btn btn-outline btn-sm" onclick="viewMode='monthly'; loadReport()">
                             <i class="fas fa-calendar-alt"></i> Monthly
@@ -140,7 +143,7 @@
                         </table>
                     </div>
                 </div>
-            </div>
+            <footer th:replace="~{fragments/layout :: siteFooter}"></footer>
         </div>
     </div>
 
@@ -402,14 +405,30 @@
         `).join('');
         }
 
-        async function exportReport() {
-            try {
-                const res = await fetch('/api/reports/export');
-                const text = await res.text();
-                showToast(text, 'success');
-            } catch (err) {
-                showToast('Export failed', 'error');
-            }
+        function exportExcel() {
+            const btn = document.getElementById('btnExcelExport');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...'; }
+            const url = `/api/reports/export/excel?month=${selectedMonth}&year=${selectedYear}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.click();
+            setTimeout(() => {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-excel"></i> Export Excel'; }
+                showToast('Excel report downloaded!', 'success');
+            }, 1500);
+        }
+
+        function exportPdf() {
+            const btn = document.getElementById('btnPdfExport');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...'; }
+            const url = `/api/reports/export/pdf?month=${selectedMonth}&year=${selectedYear}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.click();
+            setTimeout(() => {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-pdf"></i> Export PDF'; }
+                showToast('PDF report downloaded!', 'success');
+            }, 1500);
         }
     </script>
 </body>

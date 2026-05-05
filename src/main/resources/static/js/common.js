@@ -228,4 +228,176 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleTheme();
         });
     }
+
+    initGlobalSearch();
 });
+
+/* ============================================
+   Global Navbar Search
+   ============================================ */
+function initGlobalSearch() {
+    const input = document.getElementById('globalSearch');
+    if (!input) return;
+
+    // Inject dropdown container right after the search wrapper
+    const wrapper = input.closest('.navbar-search');
+    wrapper.style.position = 'relative';
+
+    const dropdown = document.createElement('div');
+    dropdown.id = 'globalSearchDropdown';
+    dropdown.style.cssText = `
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        min-width: 340px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        z-index: 9999;
+        overflow: hidden;
+        max-height: 420px;
+        overflow-y: auto;
+    `;
+    wrapper.appendChild(dropdown);
+
+    let debounceTimer = null;
+
+    input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const q = input.value.trim();
+        if (q.length < 1) {
+            closeSearchDropdown(dropdown);
+            return;
+        }
+        debounceTimer = setTimeout(() => runSearch(q, dropdown), 280);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeSearchDropdown(dropdown);
+        if (e.key === 'Enter') {
+            const q = input.value.trim();
+            if (q) {
+                window.location.href = '/transactions?search=' + encodeURIComponent(q);
+            }
+        }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) closeSearchDropdown(dropdown);
+    });
+}
+
+async function runSearch(query, dropdown) {
+    dropdown.innerHTML = `
+        <div style="padding:16px 18px; color:var(--text-muted); font-size:13px; display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-spinner fa-spin"></i> Searching...
+        </div>`;
+    dropdown.style.display = 'block';
+
+    try {
+        const res = await fetch(`/api/transactions/search?search=${encodeURIComponent(query)}&page=0&size=8`);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        renderSearchResults(data.content || [], query, dropdown);
+    } catch (err) {
+        dropdown.innerHTML = `
+            <div style="padding:16px 18px; color:var(--danger); font-size:13px;">
+                <i class="fas fa-exclamation-circle"></i> Could not load results.
+            </div>`;
+    }
+}
+
+function renderSearchResults(results, query, dropdown) {
+    if (results.length === 0) {
+        dropdown.innerHTML = `
+            <div style="padding:24px 18px; text-align:center;">
+                <div style="font-size:28px; margin-bottom:8px;">🔍</div>
+                <div style="font-size:13px; color:var(--text-muted);">No transactions found for <strong style="color:var(--text-primary);">"${escapeHtml(query)}"</strong></div>
+            </div>`;
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const headerHtml = `
+        <div style="padding:10px 16px 6px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); border-bottom:1px solid var(--border-color);">
+            ${results.length} result${results.length !== 1 ? 's' : ''} for "${escapeHtml(query)}"
+        </div>`;
+
+    const itemsHtml = results.map(tx => {
+        const isIncome  = tx.type === 'INCOME';
+        const amtColor  = isIncome ? 'var(--accent)' : 'var(--danger)';
+        const amtSign   = isIncome ? '+' : '-';
+        // BigDecimal comes as a number in JSON
+        const amtVal    = tx.amount != null ? parseFloat(tx.amount) : 0;
+        const iconColor = isIncome ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+        const iconEl    = isIncome ? 'fa-arrow-down' : 'fa-arrow-up';
+        const iconClr   = isIncome ? 'var(--accent)' : 'var(--danger)';
+        // DTO field is transactionDate, not date
+        const dateStr   = tx.transactionDate ? formatDate(tx.transactionDate) : '';
+        const cat       = tx.categoryName || 'Uncategorized';
+        // DTO field is title, not description
+        const desc      = highlight(tx.title || 'No title', query);
+
+        return `
+            <a href="/transactions" class="search-result-item" style="
+                display:flex; align-items:center; gap:14px;
+                padding:12px 16px; text-decoration:none;
+                border-bottom:1px solid var(--border-light);
+                transition:background 0.12s ease; cursor:pointer;
+            " onmouseover="this.style.background='var(--bg-card-hover)'"
+               onmouseout="this.style.background='transparent'">
+                <div style="
+                    width:36px; height:36px; border-radius:10px; flex-shrink:0;
+                    background:${iconColor}; color:${iconClr};
+                    display:flex; align-items:center; justify-content:center; font-size:14px;">
+                    <i class="fas ${iconEl}"></i>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; font-weight:600; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${desc}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(cat)} &bull; ${dateStr}</div>
+                </div>
+                <div style="font-size:14px; font-weight:700; color:${amtColor}; white-space:nowrap;">
+                    ${amtSign}${formatCurrency(amtVal)}
+                </div>
+            </a>`;
+    }).join('');
+
+    const footerHtml = `
+        <a href="/transactions?search=${encodeURIComponent(query)}" style="
+            display:block; padding:11px 16px; font-size:12px; font-weight:600;
+            color:var(--primary-light); text-align:center; text-decoration:none;
+            border-top:1px solid var(--border-color);
+            transition:background 0.12s ease;
+        " onmouseover="this.style.background='rgba(79,70,229,0.08)'"
+           onmouseout="this.style.background='transparent'">
+            <i class="fas fa-search" style="margin-right:6px;"></i> View all results for "${escapeHtml(query)}"
+        </a>`;
+
+    dropdown.innerHTML = headerHtml + itemsHtml + footerHtml;
+    dropdown.style.display = 'block';
+}
+
+function closeSearchDropdown(dropdown) {
+    if (dropdown) dropdown.style.display = 'none';
+}
+
+function highlight(text, query) {
+    if (!query) return escapeHtml(text);
+    const safe  = escapeHtml(text);
+    const safeQ = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp(`(${safeQ})`, 'gi'),
+        '<mark style="background:rgba(79,70,229,0.3);color:var(--text-primary);border-radius:3px;padding:0 2px;">$1</mark>');
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+

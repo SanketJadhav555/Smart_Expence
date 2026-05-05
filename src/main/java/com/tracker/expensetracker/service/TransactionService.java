@@ -31,7 +31,7 @@ public class TransactionService {
     private CategoryRepository categoryRepository;
 
     // Convert Entity to DTO
-    private TransactionDTO toDTO(Transaction t) {
+    public TransactionDTO toDTO(Transaction t) {
         TransactionDTO dto = new TransactionDTO();
         dto.setId(t.getId());
         dto.setTitle(t.getTitle());
@@ -47,6 +47,11 @@ public class TransactionService {
             dto.setCategoryColor(t.getCategory().getColor());
         }
         return dto;
+    }
+
+    // Public alias used by ExportService
+    public TransactionDTO toPublicDTO(com.tracker.expensetracker.model.Transaction t) {
+        return toDTO(t);
     }
 
     // Convert DTO to Entity
