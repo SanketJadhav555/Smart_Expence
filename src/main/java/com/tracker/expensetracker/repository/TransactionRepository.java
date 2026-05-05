@@ -80,11 +80,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("endDate") LocalDate endDate);
 
     // Monthly income/expense totals for last N months
-    @Query("SELECT FUNCTION('MONTH', t.transactionDate), FUNCTION('YEAR', t.transactionDate), " +
+    @Query("SELECT MONTH(t.transactionDate), YEAR(t.transactionDate), " +
             "t.type, SUM(t.amount) FROM Transaction t " +
             "WHERE t.transactionDate >= :since " +
-            "GROUP BY FUNCTION('YEAR', t.transactionDate), FUNCTION('MONTH', t.transactionDate), t.type " +
-            "ORDER BY FUNCTION('YEAR', t.transactionDate), FUNCTION('MONTH', t.transactionDate)")
+            "GROUP BY YEAR(t.transactionDate), MONTH(t.transactionDate), t.type " +
+            "ORDER BY YEAR(t.transactionDate), MONTH(t.transactionDate)")
     List<Object[]> getMonthlyTotals(@Param("since") LocalDate since);
 
     // Count transactions by category in date range
