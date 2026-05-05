@@ -136,9 +136,31 @@ public class TransactionService {
     public Page<TransactionDTO> searchTransactions(TransactionType type, Long categoryId,
                                                     LocalDate startDate, LocalDate endDate,
                                                     String search, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return transactionRepository.findWithFilters(type, categoryId, startDate, endDate, search, pageable)
-                .map(this::toDTO);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("transactionDate").descending().and(Sort.by("createdAt").descending()));
+        
+        org.springframework.data.jpa.domain.Specification<Transaction> spec = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            
+            if (type != null) {
+                predicates.add(cb.equal(root.get("type"), type));
+            }
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (startDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("transactionDate"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("transactionDate"), endDate));
+            }
+            if (search != null && !search.trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("title")), "%" + search.trim().toLowerCase() + "%"));
+            }
+            
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        return transactionRepository.findAll(spec, pageable).map(this::toDTO);
     }
 
     // Get total income
